@@ -36,10 +36,9 @@ async def load_cogs():
 
 
 async def main():
-    # Start the web server first, independently
-    await start_web_server(bot)
+    # Web server starts immediately in background — Render sees PORT bound right away
+    asyncio.create_task(start_web_server(bot))
     
-    # Now start the bot (if this crashes, web server stays up)
     async with bot:
         await load_cogs()
         await bot.start(TOKEN)
