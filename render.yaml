@@ -1,0 +1,22 @@
+services:
+  - type: web                     # "web" so Render gives us a public URL to ping
+    name: valorant-discord-bot
+    runtime: python
+    region: singapore             # closest to India (AP)
+    plan: free
+
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot.py
+
+    # Render sets PORT automatically — our aiohttp server reads it
+    envVars:
+      - key: DISCORD_TOKEN
+        sync: false               # set this manually in the Render dashboard
+      - key: HENRIK_API_KEY
+        sync: false               # optional — leave blank if you don't have one
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+
+    # Render free tier spins down after 15 min of no HTTP requests.
+    # UptimeRobot pings /health every 5 min to prevent that.
+    healthCheckPath: /health
