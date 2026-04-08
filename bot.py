@@ -36,13 +36,12 @@ async def load_cogs():
 
 
 async def main():
+    # Start the web server first, independently
+    await start_web_server(bot)
+    
+    # Now start the bot (if this crashes, web server stays up)
     async with bot:
         await load_cogs()
-        # Start health-check server and Discord bot concurrently
-        await asyncio.gather(
-            start_web_server(bot),
-            bot.start(TOKEN),
-        )
-
+        await bot.start(TOKEN)
 
 asyncio.run(main())
