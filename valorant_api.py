@@ -1,35 +1,8 @@
 import aiohttp
+import asyncio
 from typing import Optional
 
-BASE = "https://api.henrikdev.gg/valorant"
-
-# Rank tiers mapping (for emoji display)
-RANK_EMOJIS = {
-    "Iron":        "🩶",
-    "Bronze":      "🥉",
-    "Silver":      "🥈",
-    "Gold":        "🥇",
-    "Platinum":    "💎",
-    "Diamond":     "💠",
-    "Ascendant":   "🌿",
-    "Immortal":    "🔮",
-    "Radiant":     "✨",
-    "Unranked":    "❓",
-}
-
-# Friendly map names
-MAP_NAMES = {
-    "/Game/Maps/Ascent/Ascent":         "Ascent",
-    "/Game/Maps/Bonsai/Bonsai":         "Split",
-    "/Game/Maps/Canyon/Canyon":         "Fracture",
-    "/Game/Maps/Duality/Duality":       "Bind",
-    "/Game/Maps/Foxtrot/Foxtrot":       "Breeze",
-    "/Game/Maps/Jam/Jam":               "Lotus",
-    "/Game/Maps/Juliett/Juliett":       "Sunset",
-    "/Game/Maps/Pitt/Pitt":             "Pearl",
-    "/Game/Maps/Port/Port":             "Icebox",
-    "/Game/Maps/Triad/Triad":           "Haven",
-}
+BASE = "https://api.henrikdev.xyz/valorant"
 
 
 class ValorantAPI:
@@ -39,38 +12,65 @@ class ValorantAPI:
             self.headers["Authorization"] = api_key
 
     async def _get(self, url: str) -> dict:
-        async with aiohttp.ClientSession(headers=self.headers) as session:
-            async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
-                data = await resp.json()
-                if resp.status == 404:
-                    return {"status": 404, "errors": [{"message": "Player not found"}]}
-                if resp.status == 429:
-                    return {"status": 429, "errors": [{"message": "Rate limit hit. Try again in a moment."}]}
-                return data
+        print("🌐 Request:", url)
 
-    # ── Account ──────────────────────────────────────────────────────────────
+        try:
+            async with aiohttp.ClientSession(headers=self.headers) as session:
+                async with session.get(
+                    url,
+                    timeout=aiohttp.ClientTimeout(total=10)
+                ) as resp:
+
+                    try:
+                        data = await resp.json()
+                    except Exception:
+                        return {
+                            "status": resp.status,
+                            "errors": [{"message": "Invalid API response"}]
+                        }
+
+                    if resp.status == 404:
+                        return {"status": 404, "errors": [{"message": "Player not found"}]}
+
+                    if resp.status == 429:
+                        return {"status": 429, "errors": [{"message": "Rate limit hit"}]}
+
+                    return data
+
+        except asyncio.TimeoutError:
+            return {"status": 408, "errors": [{"message": "Request timed out"}]}
+
+        except Exception as e:
+            print("HTTP ERROR:", e)
+            return {"status": 500, "errors": [{"message": "Internal API error"}]}
 
     async def get_account(self, name: str, tag: str) -> dict:
         return await self._get(f"{BASE}/v1/account/{name}/{tag}")
 
-    # ── MMR / Rank ────────────────────────────────────────────────────────────
-
     async def get_mmr(self, region: str, name: str, tag: str) -> dict:
         return await self._get(f"{BASE}/v2/mmr/{region}/{name}/{tag}")
 
-    # ── Match history (last 5 competitive/unrated/etc.) ────────────────────────
-
     async def get_matches(self, region: str, name: str, tag: str,
-                          mode: str = "competitive", count: int = 5) -> dict:
-        url = f"{BASE}/v3/matches/{region}/{name}/{tag}?mode={mode}&size={count}"
-        return await self._get(url)
+                      mode: str = "competitive", count: int = 5) -> dict:
+        return await self._get(f"{BASE}/v3/matches/{region}/{name}/{tag}?mode={mode}&size={count}")
 
-    # ── Career / lifetime stats ───────────────────────────────────────────────
+    async def get_lifetime_stats(self, region: str, name: str, tag: str):
+        return await self._get(f"{BASE}/v1/lifetime/matches/{region}/{name}/{tag}")
 
-    async def get_lifetime_stats(self, region: str, name: str, tag: str) -> dict:
-        return await self._get(
-            f"{BASE}/v1/lifetime/matches/{region}/{name}/{tag}?size=20"
-        )
+# ── Helper Functions ─────────────────────────────────────────
+
+RANK_EMOJIS = {
+    "Iron": "🩶",
+    "Bronze": "🥉",
+    "Silver": "🥈",
+    "Gold": "🥇",
+    "Platinum": "💎",
+    "Diamond": "💠",
+    "Ascendant": "🌿",
+    "Immortal": "🔮",
+    "Radiant": "✨",
+    "Unranked": "❓",
+}
 
 
 def get_rank_emoji(tier_name: str) -> str:
@@ -78,6 +78,20 @@ def get_rank_emoji(tier_name: str) -> str:
         if name.lower() in tier_name.lower():
             return emoji
     return "❓"
+
+
+MAP_NAMES = {
+    "/Game/Maps/Ascent/Ascent": "Ascent",
+    "/Game/Maps/Bonsai/Bonsai": "Split",
+    "/Game/Maps/Canyon/Canyon": "Fracture",
+    "/Game/Maps/Duality/Duality": "Bind",
+    "/Game/Maps/Foxtrot/Foxtrot": "Breeze",
+    "/Game/Maps/Jam/Jam": "Lotus",
+    "/Game/Maps/Juliett/Juliett": "Sunset",
+    "/Game/Maps/Pitt/Pitt": "Pearl",
+    "/Game/Maps/Port/Port": "Icebox",
+    "/Game/Maps/Triad/Triad": "Haven",
+}
 
 
 def friendly_map(map_path: str) -> str:

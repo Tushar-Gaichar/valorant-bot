@@ -1,4 +1,5 @@
 import discord
+import os
 from discord import app_commands
 from discord.ext import commands
 from valorant_api import ValorantAPI, get_rank_emoji, friendly_map, win_loss_color
@@ -8,7 +9,7 @@ from typing import Optional
 class StatsCog(commands.Cog, name="Stats"):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.api = ValorantAPI()
+        self.api = ValorantAPI(api_key=os.getenv("HENRIK_API_KEY"))
 
     def _resolve_account(
         self,
