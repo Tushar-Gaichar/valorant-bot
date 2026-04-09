@@ -57,6 +57,11 @@ class ValorantAPI:
     async def get_lifetime_stats(self, region: str, name: str, tag: str):
         return await self._get(f"{BASE}/v1/lifetime/matches/{region}/{name}/{tag}")
 
+    async def get_mmr_history(self, region: str, name: str, tag: str, count: int = 10) -> dict:
+        return await self._get(
+            f"{BASE}/v1/mmr-history/{region}/{name}/{tag}?size={count}"
+        )
+
 # ── Helper Functions ─────────────────────────────────────────
 
 RANK_EMOJIS = {
